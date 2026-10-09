@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#1B5A55">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Betreuung">
+<title>Hundebetreuung</title>
+<style>
+html,body{margin:0;background:#EDF1EE}
+.dc{--bg:#EDF1EE;--ink:#1B2427;--muted:#5C6A6E;--line:#D5DDD9;--card:#fff;
+--teal:#1B5A55;--teal-soft:#D9EBE8;--amber:#B9800A;--amber-soft:#F8EBC6;--coral:#C44A36;--coral-soft:#F7DDD6;--indigo:#434F8F;--indigo-soft:#DDE1F2;
+font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;font-size:15px;line-height:1.45}
+.dc *{box-sizing:border-box}
+.dc .serif,.dc .h1,.dc .h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+.dc .wrap{max-width:680px;margin:0 auto;padding:16px 14px 48px}
+.dc .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dc .h1{font-size:26px;margin:0;font-weight:600}
+.dc .h2{font-size:18px;margin:0 0 8px;font-weight:600}
+.dc .save{font-size:12px;color:var(--teal)}
+.dc .save.bad{color:var(--coral)}
+.dc .muted{color:var(--muted)}
+.dc .small{font-size:13px}
+.dc .warn{color:var(--coral);margin:8px 0 0}
+.dc .tabs{display:flex;gap:4px;background:#DCE4E0;padding:4px;border-radius:12px;margin-bottom:14px}
+.dc .tab{flex:1;border:none;background:transparent;padding:9px 4px;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer}
+.dc .tab.on{background:#fff;color:var(--ink);font-weight:600}
+.dc button{font-family:inherit;color:inherit}
+.dc button:focus-visible,.dc input:focus-visible,.dc textarea:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.dc .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.dc .card.first{margin-top:0}
+.dc .hero{background:var(--teal);color:#fff;border-radius:18px;padding:20px 18px 16px}
+.dc .hero-date{font-size:28px;line-height:1.15;margin-top:4px}
+.dc .strip{display:flex;gap:6px;margin-top:18px;overflow-x:auto;padding-bottom:2px}
+.dc .strip-item{flex:0 0 auto;min-width:56px;display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:10px;padding:8px 6px;cursor:pointer;font-size:13px}
+.dc .strip-bar{display:block;width:22px;height:8px;border-radius:8px}
+.dc .chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:500}
+.dc .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.dc .row.nb{border-top:none;padding-top:0}
+.dc .rowbtn{width:100%;background:none;border:none;border-top:1px solid var(--line);cursor:pointer;text-align:left;font-size:15px}
+.dc .h2 + .row{border-top:none}
+.dc .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dc .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-size:14px;cursor:pointer}
+.dc .btn:disabled{opacity:.4;cursor:default}
+.dc .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.dc .btn-quiet{border-color:transparent;color:var(--muted);background:transparent}
+.dc .btn-armed{background:var(--coral);color:#fff;border-color:var(--coral)}
+.dc .linkish{background:none;border:none;padding:0;cursor:pointer;color:var(--teal);font-weight:600;text-align:left;min-width:92px;font-size:15px}
+.dc .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dc .wd{text-align:center;font-size:12px;padding:2px 0 4px}
+.dc .cell{position:relative;min-height:54px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:5px 4px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.dc .cell.today{background:var(--teal-soft)}
+.dc .cell.sel{border:2px solid var(--teal)}
+.dc .dn{font-size:13px}
+.dc .dots{display:flex;gap:3px;flex-wrap:wrap;justify-content:center}
+.dc .dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--c)}
+.dc .dot.ring{background:transparent;border:2px solid var(--c)}
+.dc .night{position:absolute;left:6px;right:6px;bottom:3px;height:4px;border-radius:4px;background:var(--indigo)}
+.dc .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.dc .legend span{display:inline-flex;align-items:center;gap:5px}
+.dc .legend .bar{display:inline-block;width:14px;height:4px;border-radius:4px;background:var(--indigo)}
+.dc .form{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.dc .lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.dc .lbl.sp{margin-top:12px}
+.dc .inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:#fff}
+.dc .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dc .chips{display:flex;gap:6px;flex-wrap:wrap}
+.dc .pill{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 14px;font-size:14px;cursor:pointer}
+.dc .pill.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.dc .check{display:flex;gap:8px;align-items:center;margin:12px 0}
+.dc .stepper{display:flex;align-items:center;gap:12px}
+.dc .form .actions{margin-top:14px}
+.dc .tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+.dc .tbl th{font-weight:500;color:var(--muted);padding:6px;text-align:center;border-bottom:1px solid var(--line)}
+.dc .tbl td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--line)}
+.dc .tbl .sum td{font-weight:700;border-bottom:none}
+.dc .tbl .l{text-align:left}
+</style>
+</head>
+<body>
+<div class="dc"><div class="wrap" id="app"></div></div>
+
+<script>
+"use strict";
+/* ---------- Datum-Helfer (lokale Zeit, YYYY-MM-DD) ---------- */
+const pad = n => String(n).padStart(2, "0");
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return fmt(d); };
+const addMonths = (s, n) => { const d = parse(s); d.setMonth(d.getMonth() + n); return fmt(d); };
+const todayStr = () => fmt(new Date());
+const fmtLong = s => parse(s).toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fmtShort = s => parse(s).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" });
+const fmtDM = s => `${parse(s).getDate()}.${parse(s).getMonth() + 1}.`;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const num = v => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? 0 : n; };
+const eur = n => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- Datenmodell & Speicher ---------- */
+const KEY = "hundebetreuung:v1";
+const DEFAULT = () => ({
+  dogName: "",
+  startDate: "2026-10-14",      // erster Regeltermin (Mittwoch), in den Einstellungen anpassbar
+  expiryMonths: "",             // optionale Nachholfrist in Monaten
+  rates: { flat: "240.00", day: "60.00", night: "25.00" },   // brutto inkl. 19 % MwSt.
+  priceBasis: "brutto",
+  skips: {},                    // { 'YYYY-MM-DD': { reason, makeup, movedTo? } }
+  bookings: []                  // { id, date, type: 'nachhol'|'zusatz'|'nacht', nights, note }
+});
+let saveState = "saved";
+function normalize(p) {
+  const def = DEFAULT().rates, sr = p.rates || {};
+  const o = Object.assign(DEFAULT(), p);
+  let r = Object.assign({}, def, sr);
+  if (!num(sr.flat) && !num(sr.day) && !num(sr.night)) r = Object.assign({}, def);   // Preise nie gepflegt: Standardwerte
+  else if (p.priceBasis !== "brutto") {                                                // ältere Daten: Preise waren netto
+    const f = 1 + (num(p.vatRate) > 0 ? num(p.vatRate) : 19) / 100;
+    ["flat", "day", "night"].forEach(k => { r[k] = sr[k] === undefined || sr[k] === "" ? def[k] : (num(sr[k]) * f).toFixed(2); });
+  }
+  o.rates = r; o.priceBasis = "brutto"; delete o.vatRate;
+  return o;
+}
+function load() {
+  try {
+    const r = localStorage.getItem(KEY);
+    if (r) return normalize(JSON.parse(r));
+  } catch (e) { saveState = "memory"; }
+  return DEFAULT();
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); saveState = "saved"; }
+  catch (e) { saveState = "memory"; }
+}
+let data = load();
+
+/* ---------- UI-Zustand ---------- */
+const now = new Date();
+const ui = {
+  tab: "overview", sel: todayStr(), cal: { y: now.getFullYear(), m: now.getMonth() }, year: now.getFullYear(),
+  mode: null, addDate: "", reason: "Urlaub", makeup: true, moveTo: "", type: "zusatz", nights: 0, note: "",
+  importText: "", importMsg: "", armed: null
+};
+
+/* ---------- Fachlogik ---------- */
+const isRegular = d => parse(d).getDay() === 3 && d >= data.startDate;
+const KIND = {
+  regular: { label: "Regeltermin", color: "var(--teal)", soft: "var(--teal-soft)" },
+  skipM:   { label: "Ausgefallen (nachholbar)", color: "var(--amber)", soft: "var(--amber-soft)" },
+  skipN:   { label: "Ausgefallen", color: "var(--muted)", soft: "var(--line)" },
+  nachhol: { label: "Nachholtag", color: "var(--amber)", soft: "var(--amber-soft)" },
+  zusatz:  { label: "Zusatztag", color: "var(--coral)", soft: "var(--coral-soft)" },
+  nacht:   { label: "Übernachtung", color: "var(--indigo)", soft: "var(--indigo-soft)" }
+};
+const nightsText = n => `${n} ${n === 1 ? "Nacht" : "Nächte"}`;
+
+function eventsOn(d) {
+  const evs = [];
+  if (isRegular(d)) {
+    const sk = data.skips[d];
+    evs.push(sk ? { kind: sk.makeup ? "skipM" : "skipN", skip: sk } : { kind: "regular" });
+  }
+  data.bookings.filter(b => b.date === d).forEach(b => evs.push({ kind: b.type, nights: b.nights, note: b.note, id: b.id }));
+  return evs;
+}
+const evLabel = ev => KIND[ev.kind].label + (ev.nights > 0 ? ", " + nightsText(ev.nights) : "");
+function bookingCost(b) {
+  const day = num(data.rates.day), night = num(data.rates.night);
+  return b.type === "zusatz" ? day + b.nights * night : b.nights * night;
+}
+function computeCredits() {
+  const skipList = Object.entries(data.skips).filter(([, s]) => s.makeup)
+    .map(([date, s]) => Object.assign({ date }, s)).sort((a, b) => a.date < b.date ? -1 : 1);
+  const used = data.bookings.filter(b => b.type === "nachhol").length;
+  return { skipList, used, open: skipList.slice(used), over: Math.max(0, used - skipList.length), openCount: Math.max(0, skipList.length - used) };
+}
+function upcoming() {
+  const list = [], t = todayStr();
+  for (let i = 0; i < 150; i++) {
+    const d = addDays(t, i);
+    eventsOn(d).forEach(ev => list.push(Object.assign({ date: d }, ev)));
+  }
+  return list;
+}
+function strip() {
+  const out = [], t = todayStr();
+  for (let i = 0; i < 70 && out.length < 8; i++) {
+    const d = addDays(t, i);
+    if (isRegular(d)) out.push({ date: d, skip: data.skips[d] });
+  }
+  return out;
+}
+function nightSet() {
+  const s = new Set();
+  data.bookings.forEach(b => { for (let i = 0; i < b.nights; i++) s.add(addDays(b.date, i)); });
+  return s;
+}
+function yearStats(year) {
+  const rows = [], sd = parse(data.startDate), startIdx = sd.getFullYear() * 12 + sd.getMonth();
+  for (let m = 0; m < 12; m++) {
+    const dim = new Date(year, m + 1, 0).getDate();
+    let regular = 0, skipped = 0;
+    for (let d = 1; d <= dim; d++) {
+      const ds = `${year}-${pad(m + 1)}-${pad(d)}`;
+      if (isRegular(ds)) { data.skips[ds] ? skipped++ : regular++; }
+    }
+    const bs = data.bookings.filter(b => b.date.startsWith(`${year}-${pad(m + 1)}`));
+    rows.push({
+      m, regular, skipped,
+      nachhol: bs.filter(b => b.type === "nachhol").length,
+      zusatz: bs.filter(b => b.type === "zusatz").length,
+      nights: bs.reduce((a, b) => a + b.nights, 0),
+      cost: bs.reduce((a, b) => a + bookingCost(b), 0),
+      flat: year * 12 + m >= startIdx ? num(data.rates.flat) : 0
+    });
+  }
+  return rows;
+}
+
+/* ---------- Mini-Bausteine ---------- */
+const chip = (kind, text) => {
+  const k = KIND[kind];
+  return `<span class="chip" style="background:${k.soft};color:${kind === "skipN" ? "var(--ink)" : k.color}">${esc(text || k.label)}</span>`;
+};
+const dot = kind => `<span class="dot${kind === "skipM" || kind === "skipN" ? " ring" : ""}" style="--c:${KIND[kind].color}"></span>`;
+const btn = (act, label, arg, cls = "btn") => `<button class="${cls}" data-act="${act}"${arg !== undefined ? ` data-arg="${esc(arg)}"` : ""}>${label}</button>`;
+const cbtn = (act, label, confirmLabel, arg, cls = "btn btn-quiet") => {
+  const key = act + ":" + (arg === undefined ? "" : arg), armed = ui.armed === key;
+  return `<button class="${cls}${armed ? " btn-armed" : ""}" data-act="${act}" data-confirm="${key}"${arg !== undefined ? ` data-arg="${esc(arg)}"` : ""}>${armed ? confirmLabel : label}</button>`;
+};
+
+/* ---------- Views ---------- */
+function vDay(cr) {
+  const d = ui.sel, reg = isRegular(d), sk = data.skips[d];
+  const dayB = data.bookings.filter(b => b.date === d);
+  const stays = data.bookings.filter(b => b.nights > 0 && d > b.date && d <= addDays(b.date, b.nights));
+  let h = `<div class="card"><h2 class="h2">${esc(fmtLong(d))}</h2>`;
+  if (!reg && !dayB.length && !stays.length) h += `<p class="muted" style="margin:6px 0 0">Nichts eingetragen.</p>`;
+
+  if (reg) {
+    h += `<div class="row"><div>${chip(sk ? (sk.makeup ? "skipM" : "skipN") : "regular")}`;
+    if (sk) h += `<div class="muted small" style="margin-top:4px">${esc(sk.reason)}${sk.movedTo ? ", verschoben auf " + esc(fmtShort(sk.movedTo)) : ""}${sk.makeup ? "" : ", nicht nachholbar"}</div>`;
+    h += `</div><div class="actions">`;
+    h += sk ? btn("unskip", "Wieder aktivieren", d) : btn("mode", "Verschieben", "move") + btn("mode", "Ausfallen lassen", "skip");
+    h += `</div></div>`;
+  }
+  dayB.forEach(b => {
+    h += `<div class="row"><div>${chip(b.type, KIND[b.type].label + (b.nights > 0 ? ", " + nightsText(b.nights) : ""))}`;
+    if (b.nights > 0) h += `<div class="muted small" style="margin-top:4px">Abholung am ${esc(fmtShort(addDays(b.date, b.nights)))}</div>`;
+    if (b.note) h += `<div class="small" style="margin-top:4px">${esc(b.note)}</div>`;
+    h += `</div>${cbtn("delBooking", "Löschen", "Wirklich?", b.id)}</div>`;
+  });
+  stays.forEach(b => {
+    h += `<div class="row"><div>${chip("nacht", d === addDays(b.date, b.nights) ? "Abholung" : "Übernachtung läuft")}
+      <div class="muted small" style="margin-top:4px">Aufenthalt ab ${esc(fmtShort(b.date))}, ${nightsText(b.nights)}</div></div></div>`;
+  });
+
+  if (ui.mode === null) {
+    const hasCredit = cr.openCount > 0;
+    h += `<div class="actions" style="margin-top:14px">` +
+      (hasCredit ? btn("mode", "Nachholtag eintragen", "add:nachhol", "btn btn-primary") : "") +
+      btn("mode", "Zusatztag hinzufügen", "add:zusatz", hasCredit ? "btn" : "btn btn-primary") +
+      btn("mode", "Übernachtung hinzufügen", "add:nacht", "btn") + `</div>`;
+  }
+
+  if (ui.mode === "skip") {
+    h += `<div class="form"><label class="lbl">Grund</label><div class="chips">` +
+      ["Urlaub", "Krank", "Feiertag", "Sonstiges"].map(r => btn("reason", r, r, "pill" + (ui.reason === r ? " on" : ""))).join("") +
+      `</div><label class="check"><input type="checkbox" data-ui="makeup" ${ui.makeup ? "checked" : ""}> Tag ist nachholbar (zählt als Guthaben)</label>
+      <div class="actions">${btn("doSkip", "Ausfall speichern", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
+  }
+  if (ui.mode === "move") {
+    h += `<div class="form"><label class="lbl">Neuer Termin</label>
+      <input class="inp" type="date" data-ui="moveTo" value="${esc(ui.moveTo)}">
+      <p class="muted small" style="margin:8px 0 0">Der Mittwoch fällt aus und der neue Tag wird als Nachholtag eingetragen.</p>
+      <div class="actions">${btn("doMove", "Verschieben", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
+  }
+  if (ui.mode === "add") {
+    h += `<div class="form"><label class="lbl">Datum</label><input class="inp" type="date" data-ui="addDate" value="${esc(ui.addDate)}" style="margin-bottom:12px">
+      <label class="lbl">Art der Buchung</label><div class="chips">` +
+      [["zusatz", "Zusatztag"], ["nachhol", "Nachholtag"], ["nacht", "Übernachtung"]]
+        .map(([k, l]) => btn("type", l, k, "pill" + (ui.type === k ? " on" : ""))).join("") + `</div>`;
+    if (ui.type === "nachhol" && cr.openCount === 0) h += `<p class="warn small">Kein offenes Guthaben. Die Buchung zählt als Überbuchung.</p>`;
+    if (ui.type === "nacht") h += `<p class="muted small" style="margin:8px 0 0">Zusätzlich zu einem bereits gebuchten Tag, zum Beispiel am Mittwoch. Das Datum oben ist die erste Nacht.</p>`;
+    h += `<label class="lbl sp">Übernachtungen</label>
+      <div class="stepper">${btn("nights", "−", "-1")}<span class="serif" style="font-size:22px;min-width:28px;text-align:center">${ui.nights}</span>${btn("nights", "+", "1")}</div>
+      ${ui.nights > 0 && ui.addDate ? `<div class="muted small" style="margin-top:8px">Erste Nacht ${esc(fmtShort(ui.addDate))}, Abholung am ${esc(fmtShort(addDays(ui.addDate, ui.nights)))}</div>` : ""}
+      <label class="lbl sp">Notiz (optional)</label>
+      <input class="inp" data-ui="note" value="${esc(ui.note)}" placeholder="z. B. Abholung erst abends">
+      <div class="actions">${btn("doAdd", "Buchung speichern", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
+  }
+  return h + `</div>`;
+}
+
+function vOverview(cr) {
+  const up = upcoming(), next = up[0], st = strip(), t = todayStr();
+  let h = `<section class="hero"><div class="small" style="opacity:.8">Nächster Termin</div>`;
+  if (next) {
+    h += `<div class="serif hero-date">${esc(fmtLong(next.date))}</div>
+      <div style="margin-top:8px"><span class="chip" style="background:rgba(255,255,255,.16);color:#fff">${next.date === t ? "Heute: " : ""}${esc(evLabel(next))}</span></div>`;
+  } else h += `<div class="serif hero-date">Keine Termine in den nächsten 150 Tagen</div>`;
+  h += `<div class="strip">` + st.map(s => `<button class="strip-item" data-act="goto" data-arg="${s.date}" title="${esc(fmtLong(s.date))}">
+      <span style="font-weight:600">${fmtDM(s.date)}</span>
+      <span class="strip-bar" style="background:${s.skip ? "transparent" : "#fff"};${s.skip ? "border:2px solid " + (s.skip.makeup ? "#F2C14E" : "rgba(255,255,255,.55)") : ""}"></span>
+      <span style="font-size:11px;opacity:.8">${s.skip ? "fällt aus" : "Mi"}</span></button>`).join("") + `</div></section>`;
+
+  h += `<section class="card"><div class="row nb"><div><h2 class="h2" style="margin:0">Offenes Guthaben</h2>
+    <div class="muted small">Ausgefallene, nachholbare Tage ohne Nachholtermin</div></div>
+    <div class="serif" style="font-size:40px;line-height:1;color:${cr.openCount ? "var(--amber)" : "var(--muted)"}">${cr.openCount}</div></div>`;
+  if (cr.over > 0) h += `<p class="warn small">Es sind ${cr.over} Nachholtag(e) mehr gebucht als Guthaben vorhanden. Bitte Ausfälle oder Buchungen prüfen.</p>`;
+  cr.open.forEach(s => {
+    const months = Math.round(num(data.expiryMonths));
+    const exp = months > 0 ? addMonths(s.date, months) : null;
+    const expired = exp && exp < t;
+    const soon = exp && !expired && parse(exp) - parse(t) <= 30 * 86400000;
+    h += `<div class="row"><div><div>${esc(fmtShort(s.date))}</div><div class="muted small">${esc(s.reason)}${exp ? ", einlösbar bis " + esc(fmtShort(exp)) : ""}</div></div>
+      <div class="actions">${expired ? `<span class="chip" style="background:var(--coral-soft);color:var(--coral)">abgelaufen</span>` : ""}${soon ? `<span class="chip" style="background:var(--coral-soft);color:var(--coral)">läuft bald ab</span>` : ""}${btn("redeem", "Einlösen")}</div></div>`;
+  });
+  if (cr.openCount === 0 && cr.over === 0) h += `<p class="muted small" style="margin:10px 0 0">Alles eingelöst.</p>`;
+  h += `</section>`;
+
+  const rest = up.slice(1, 9);
+  h += `<section class="card"><h2 class="h2">Anstehend</h2>`;
+  if (!rest.length) h += `<p class="muted small">Nichts weiter geplant.</p>`;
+  rest.forEach(ev => {
+    h += `<button class="row rowbtn" data-act="goto" data-arg="${ev.date}"><div style="text-align:left"><div>${esc(fmtShort(ev.date))}</div>${ev.note ? `<div class="muted small">${esc(ev.note)}</div>` : ""}</div>${chip(ev.kind, evLabel(ev))}</button>`;
+  });
+  h += `<button class="btn btn-primary" style="margin-top:14px" data-act="goto" data-arg="${t}">Termin eintragen</button></section>`;
+  return h;
+}
+
+function vCalendar(cr) {
+  const { y, m } = ui.cal, t = todayStr(), ns = nightSet();
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate();
+  let cells = "";
+  for (let i = 0; i < offset; i++) cells += `<div></div>`;
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${y}-${pad(m + 1)}-${pad(d)}`;
+    cells += `<button class="cell${ds === ui.sel ? " sel" : ""}${ds === t ? " today" : ""}" data-act="sel" data-arg="${ds}" aria-label="${esc(fmtLong(ds))}">
+      <span class="dn">${d}</span><span class="dots">${eventsOn(ds).map(ev => dot(ev.kind)).join("")}</span>${ns.has(ds) ? `<span class="night"></span>` : ""}</button>`;
+  }
+  const wd = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map(w => `<div class="wd" style="color:${w === "Mi" ? "var(--teal)" : "var(--muted)"};font-weight:${w === "Mi" ? 700 : 400}">${w}</div>`).join("");
+  return `<div class="card first"><div class="row nb" style="margin-bottom:10px">${btn("month", "‹", "-1")}
+    <div class="serif" style="font-size:19px">${esc(new Date(y, m, 1).toLocaleDateString("de-DE", { month: "long", year: "numeric" }))}</div>${btn("month", "›", "1")}</div>
+    <div class="grid">${wd}${cells}</div>
+    <div class="legend">${["regular", "skipM", "nachhol", "zusatz"].map(k => `<span>${dot(k)} ${KIND[k].label}</span>`).join("")}<span><span class="bar"></span> Übernachtung</span></div></div>` + vDay(cr);
+}
+
+function vHistory() {
+  const year = ui.year, rows = yearStats(year), hasRates = num(data.rates.flat) > 0 || num(data.rates.day) > 0 || num(data.rates.night) > 0;
+  const sum = k => rows.reduce((a, r) => a + r[k], 0);
+  const items = [];
+  Object.entries(data.skips).forEach(([d, s]) => { if (d.startsWith(String(year))) items.push({ date: d, type: "skip", skip: s }); });
+  data.bookings.forEach(b => { if (b.date.startsWith(String(year))) items.push({ date: b.date, type: "booking", b }); });
+  items.sort((a, b) => a.date < b.date ? 1 : -1);
+  const total = sum("flat") + sum("cost");
+
+  let h = `<div class="card first"><div class="row nb" style="margin-bottom:10px">${btn("year", "‹", "-1")}<div class="serif" style="font-size:22px">${year}</div>${btn("year", "›", "1")}</div>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th class="l">Monat</th><th>Regel</th><th>Ausfall</th><th>Nachholt.</th><th>Zusatz</th><th>Nächte</th>${hasRates ? "<th>Extra</th><th>Gesamt</th>" : ""}</tr></thead><tbody>`;
+  rows.forEach(r => {
+    h += `<tr><td class="l">${esc(new Date(year, r.m, 1).toLocaleDateString("de-DE", { month: "short" }))}</td><td>${r.regular || "–"}</td><td>${r.skipped || "–"}</td><td>${r.nachhol || "–"}</td><td>${r.zusatz || "–"}</td><td>${r.nights || "–"}</td>${hasRates ? `<td>${r.cost ? eur(r.cost) : "–"}</td><td>${r.flat + r.cost ? eur(r.flat + r.cost) : "–"}</td>` : ""}</tr>`;
+  });
+  h += `<tr class="sum"><td class="l">Summe</td><td>${sum("regular")}</td><td>${sum("skipped")}</td><td>${sum("nachhol")}</td><td>${sum("zusatz")}</td><td>${sum("nights")}</td>${hasRates ? `<td>${eur(sum("cost"))}</td><td>${eur(total)}</td>` : ""}</tr></tbody></table></div>
+    <p class="muted small" style="margin:10px 0 0">Regel = stattgefundene oder geplante Mittwochstermine. Extra = Zusatztage und Nächte. Gesamt = Monatspauschale ab Startmonat plus Extra. Alle Beträge brutto inkl. 19 % MwSt.</p></div>
+    <div class="card"><h2 class="h2">Alle Einträge ${year}</h2>`;
+  if (!items.length) h += `<p class="muted small">Keine Ausfälle oder Buchungen in diesem Jahr.</p>`;
+  items.forEach(it => {
+    if (it.type === "skip") {
+      h += `<div class="row"><button class="linkish" data-act="goto" data-arg="${it.date}">${esc(fmtShort(it.date))}</button><div style="flex:1;margin-left:12px">${chip(it.skip.makeup ? "skipM" : "skipN")}
+        <div class="muted small" style="margin-top:3px">${esc(it.skip.reason)}${it.skip.movedTo ? ", verschoben auf " + esc(fmtShort(it.skip.movedTo)) : ""}</div></div></div>`;
+    } else {
+      const b = it.b;
+      h += `<div class="row"><button class="linkish" data-act="goto" data-arg="${it.date}">${esc(fmtShort(it.date))}</button><div style="flex:1;margin-left:12px">${chip(b.type, KIND[b.type].label + (b.nights > 0 ? ", " + nightsText(b.nights) : ""))}
+        ${b.note ? `<div class="muted small" style="margin-top:3px">${esc(b.note)}</div>` : ""}</div>${cbtn("delBooking", "Löschen", "Wirklich?", b.id)}</div>`;
+    }
+  });
+  return h + `</div>`;
+}
+
+function vSettings() {
+  const notWed = parse(data.startDate).getDay() !== 3;
+  return `<div class="card first"><h2 class="h2">Grunddaten</h2>
+    <label class="lbl">Name des Hundes (optional)</label>
+    <input class="inp" data-set="dogName" value="${esc(data.dogName)}">
+    <label class="lbl sp">Erster Regeltermin (ein Mittwoch)</label>
+    <input class="inp" type="date" data-set="startDate" value="${esc(data.startDate)}">
+    ${notWed ? `<p class="warn small">Das ist kein Mittwoch. Der erste Regeltermin ist dann der folgende Mittwoch.</p>` : ""}
+    <label class="lbl sp">Nachholfrist in Monaten (optional)</label>
+    <input class="inp" inputmode="numeric" data-set="expiryMonths" value="${esc(data.expiryMonths)}" placeholder="leer = keine Frist">
+    <p class="muted small" style="margin:6px 0 0">Nur befüllen, wenn dein Vertrag eine Frist vorsieht. Offenes Guthaben zeigt dann das Ablaufdatum.</p></div>
+    <div class="card"><h2 class="h2">Preise (brutto, inkl. 19 % MwSt.)</h2>
+      <div class="two">
+        <div><label class="lbl">Monatspauschale (EUR)</label><input class="inp" inputmode="decimal" data-set="rates.flat" value="${esc(data.rates.flat)}"></div>
+        <div><label class="lbl">Zusatztag (EUR)</label><input class="inp" inputmode="decimal" data-set="rates.day" value="${esc(data.rates.day)}"></div>
+        <div><label class="lbl">Übernachtung (EUR)</label><input class="inp" inputmode="decimal" data-set="rates.night" value="${esc(data.rates.night)}"></div></div>
+      <p class="muted small" style="margin:8px 0 0">Zusatztag mit einer Nacht: ${esc(eur(num(data.rates.day) + num(data.rates.night)))}. Nachholtage kosten nichts extra, nur ihre Nächte.</p></div>
+    <div class="card"><h2 class="h2">Sicherung</h2>
+      <p class="muted small" style="margin:0 0 10px">Die Daten liegen im Speicher dieses Browsers auf diesem Gerät. Lade regelmäßig eine Sicherung herunter, besonders vor dem Löschen von Browserdaten.</p>
+      <div class="actions">${btn("download", "Sicherung herunterladen", undefined, "btn btn-primary")}${btn("copy", "Sicherung kopieren")}</div>
+      <textarea class="inp" rows="2" readonly data-select="1" style="margin-top:8px" aria-label="Sicherung als Text">${esc(JSON.stringify(data))}</textarea>
+      <label class="lbl sp">Import: Sicherungsdatei wählen oder Inhalt einfügen</label>
+      <input type="file" id="importFile" accept=".json,application/json" style="margin-bottom:8px">
+      <textarea class="inp" rows="3" data-ui="importText">${esc(ui.importText)}</textarea>
+      <div class="actions" style="margin-top:10px">${cbtn("importDo", "Importieren", "Bestehende Daten ersetzen?", undefined, "btn btn-primary")}${cbtn("resetAll", "Alle Daten löschen", "Endgültig löschen?")}</div>
+      ${ui.importMsg ? `<p class="small" style="margin:8px 0 0">${esc(ui.importMsg)}</p>` : ""}</div>`;
+}
+
+function render() {
+  const sy = window.scrollY, cr = computeCredits();
+  const title = data.dogName ? `${data.dogName}: Betreuung` : "Hundebetreuung";
+  document.title = title;
+  const sl = saveState === "saved" ? "Gespeichert in diesem Browser" : "Speichern nicht möglich, Daten nur in dieser Sitzung";
+  const tabs = [["overview", "Übersicht"], ["calendar", "Kalender"], ["history", "Verlauf"], ["settings", "Einstellungen"]];
+  let body = "";
+  if (ui.tab === "overview") body = vOverview(cr);
+  else if (ui.tab === "calendar") body = vCalendar(cr);
+  else if (ui.tab === "history") body = vHistory();
+  else body = vSettings();
+  document.getElementById("app").innerHTML =
+    `<header class="head"><h1 class="h1">${esc(title)}</h1><span class="save${saveState === "saved" ? "" : " bad"}">${sl}</span></header>
+     <nav class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${ui.tab === k}" class="tab${ui.tab === k ? " on" : ""}" data-act="tab" data-arg="${k}">${l}</button>`).join("")}</nav>` + body;
+  window.scrollTo(0, sy);
+}
+
+/* ---------- Aktionen ---------- */
+function openMode(m) {
+  ui.mode = m || null;
+  if (m === "skip") { ui.reason = "Urlaub"; ui.makeup = true; }
+  if (m === "move") ui.moveTo = addDays(ui.sel, 1);
+  if (m === "add") { ui.type = "zusatz"; ui.nights = 0; ui.note = ""; ui.addDate = ui.sel; }
+}
+function goTo(d) {
+  const dt = parse(d);
+  ui.sel = d; ui.mode = null; ui.cal = { y: dt.getFullYear(), m: dt.getMonth() }; ui.tab = "calendar";
+}
+const ACTIONS = {
+  tab: a => { ui.tab = a; },
+  goto: a => goTo(a),
+  sel: a => { ui.sel = a; ui.mode = null; },
+  month: a => { const d = new Date(ui.cal.y, ui.cal.m + Number(a), 1); ui.cal = { y: d.getFullYear(), m: d.getMonth() }; },
+  year: a => { ui.year += Number(a); },
+  mode: a => { if (a.startsWith("add:")) { openMode("add"); ui.type = a.slice(4); if (ui.type === "nacht") ui.nights = 1; } else openMode(a); },
+  reason: a => { ui.reason = a; },
+  type: a => { ui.type = a; if (a === "nacht" && ui.nights < 1) ui.nights = 1; },
+  nights: a => { ui.nights = Math.max(ui.type === "nacht" ? 1 : 0, Math.min(30, ui.nights + Number(a))); },
+  doSkip: () => { data.skips[ui.sel] = { reason: ui.reason, makeup: ui.makeup }; ui.mode = null; save(); },
+  unskip: a => { delete data.skips[a]; save(); },
+  doMove: () => {
+    if (!ui.moveTo || ui.moveTo === ui.sel) return;
+    data.skips[ui.sel] = { reason: "Verschoben", makeup: true, movedTo: ui.moveTo };
+    data.bookings.push({ id: uid(), date: ui.moveTo, type: "nachhol", nights: 0, note: "Verschoben vom " + fmtShort(ui.sel) });
+    ui.mode = null; save();
+  },
+  doAdd: () => {
+    if (!ui.addDate) return;
+    data.bookings.push({ id: uid(), date: ui.addDate, type: ui.type, nights: ui.nights, note: ui.note.trim() });
+    const dt = parse(ui.addDate);
+    ui.sel = ui.addDate; ui.cal = { y: dt.getFullYear(), m: dt.getMonth() };
+    ui.mode = null; save();
+  },
+  delBooking: a => { data.bookings = data.bookings.filter(b => b.id !== a); save(); },
+  redeem: () => { goTo(todayStr()); openMode("add"); ui.type = "nachhol"; },
+  copy: () => {
+    const txt = JSON.stringify(data), fail = "Kopieren nicht möglich. Text im Feld markieren und manuell kopieren.";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => { ui.importMsg = "Sicherung kopiert."; render(); }, () => { ui.importMsg = fail; render(); });
+    } else ui.importMsg = fail;
+  },
+  download: () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `hundebetreuung-sicherung-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+  importDo: () => {
+    try {
+      const p = JSON.parse(ui.importText);
+      if (typeof p !== "object" || !Array.isArray(p.bookings) || typeof p.skips !== "object") throw new Error();
+      data = normalize(p); save();
+      ui.importText = ""; ui.importMsg = "Import erfolgreich.";
+    } catch (e) { ui.importMsg = "Das ist kein gültiger Export."; }
+  },
+  resetAll: () => { data = DEFAULT(); save(); ui.importMsg = ""; }
+};
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, arg = el.dataset.arg, conf = el.dataset.confirm;
+  if (conf && ui.armed !== conf) {
+    ui.armed = conf;
+    setTimeout(() => { if (ui.armed === conf) { ui.armed = null; render(); } }, 3500);
+    render();
+    return;
+  }
+  ui.armed = null;
+  if (ACTIONS[act]) ACTIONS[act](arg);
+  render();
+});
+
+document.addEventListener("focusin", e => { if (e.target.dataset && e.target.dataset.select) e.target.select(); });
+
+/* Eingaben ohne Neu-Rendern merken */
+document.addEventListener("input", e => {
+  const k = e.target.dataset && e.target.dataset.ui;
+  if (k && k !== "makeup") ui[k] = e.target.value;
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.ui === "makeup") { ui.makeup = t.checked; return; }
+  if (t.dataset && t.dataset.ui) { ui[t.dataset.ui] = t.value; if (t.dataset.ui === "addDate") render(); return; }
+  if (t.dataset && t.dataset.set) {
+    const path = t.dataset.set.split(".");
+    if (path[0] === "startDate" && !t.value) return render();
+    if (path.length === 2) data[path[0]][path[1]] = t.value; else data[path[0]] = t.value;
+    save(); render();
+    return;
+  }
+  if (t.id === "importFile" && t.files && t.files[0]) {
+    const r = new FileReader();
+    r.onload = () => { ui.importText = String(r.result); ui.importMsg = "Datei geladen. Jetzt auf Importieren tippen."; render(); };
+    r.readAsText(t.files[0]);
+  }
+});
+
+render();
+</script>
+</body>
+</html>
