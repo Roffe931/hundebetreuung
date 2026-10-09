@@ -108,7 +108,8 @@ const DEFAULT = () => ({
   rates: { flat: "240.00", day: "60.00", night: "25.00" },   // brutto inkl. 19 % MwSt.
   priceBasis: "brutto",
   skips: {},                    // { 'YYYY-MM-DD': { reason, makeup, movedTo? } }
-  bookings: []                  // { id, date, type: 'nachhol'|'zusatz'|'nacht', nights, note }
+  bookings: [],                 // { id, date, type: 'nachhol'|'zusatz'|'nacht', nights, fromCredit, note }
+  nightCredits: []              // { id, date, nights, paid, note }: gebuchte, nicht genutzte Nächte
 });
 let saveState = "saved";
 function normalize(p) {
@@ -140,7 +141,7 @@ let data = load();
 const now = new Date();
 const ui = {
   tab: "overview", sel: todayStr(), cal: { y: now.getFullYear(), m: now.getMonth() }, year: now.getFullYear(),
-  mode: null, addDate: "", reason: "Urlaub", makeup: true, moveTo: "", type: "zusatz", nights: 0, note: "",
+  mode: null, addDate: "", fromCredit: 0, ncDate: "", ncNights: 1, ncNote: "", ncPaid: true, reason: "Urlaub", makeup: true, moveTo: "", type: "zusatz", nights: 0, note: "",
   importText: "", importMsg: "", armed: null
 };
 
@@ -152,7 +153,8 @@ const KIND = {
   skipN:   { label: "Ausgefallen", color: "var(--muted)", soft: "var(--line)" },
   nachhol: { label: "Nachholtag", color: "var(--amber)", soft: "var(--amber-soft)" },
   zusatz:  { label: "Zusatztag", color: "var(--coral)", soft: "var(--coral-soft)" },
-  nacht:   { label: "Übernachtung", color: "var(--indigo)", soft: "var(--indigo-soft)" }
+  nacht:   { label: "Übernachtung", color: "var(--indigo)", soft: "var(--indigo-soft)" },
+  ncredit: { label: "Nacht-Guthaben", color: "var(--indigo)", soft: "var(--indigo-soft)" }
 };
 const nightsText = n => `${n} ${n === 1 ? "Nacht" : "Nächte"}`;
 
@@ -163,18 +165,32 @@ function eventsOn(d) {
     evs.push(sk ? { kind: sk.makeup ? "skipM" : "skipN", skip: sk } : { kind: "regular" });
   }
   data.bookings.filter(b => b.date === d).forEach(b => evs.push({ kind: b.type, nights: b.nights, note: b.note, id: b.id }));
+  data.nightCredits.filter(e => e.date === d).forEach(e => evs.push({ kind: "ncredit", nights: e.nights, note: e.note, id: e.id }));
   return evs;
 }
 const evLabel = ev => KIND[ev.kind].label + (ev.nights > 0 ? ", " + nightsText(ev.nights) : "");
 function bookingCost(b) {
   const day = num(data.rates.day), night = num(data.rates.night);
-  return b.type === "zusatz" ? day + b.nights * night : b.nights * night;
+  const paid = Math.max(0, b.nights - (b.fromCredit || 0));   // Nächte aus Guthaben sind kostenfrei
+  return b.type === "zusatz" ? day + paid * night : paid * night;
 }
 function computeCredits() {
   const skipList = Object.entries(data.skips).filter(([, s]) => s.makeup)
     .map(([date, s]) => Object.assign({ date }, s)).sort((a, b) => a.date < b.date ? -1 : 1);
   const used = data.bookings.filter(b => b.type === "nachhol").length;
   return { skipList, used, open: skipList.slice(used), over: Math.max(0, used - skipList.length), openCount: Math.max(0, skipList.length - used) };
+}
+function computeNights() {
+  const entries = data.nightCredits.slice().sort((a, b) => a.date < b.date ? -1 : 1);
+  const used = data.bookings.reduce((a, b) => a + (b.fromCredit || 0), 0);
+  const total = entries.reduce((a, e) => a + e.nights, 0);
+  let left = used;
+  const open = [];
+  entries.forEach(e => {
+    const take = Math.min(left, e.nights); left -= take;
+    if (e.nights - take > 0) open.push(Object.assign({}, e, { nights: e.nights - take }));
+  });
+  return { total, used, open, openCount: Math.max(0, total - used), over: Math.max(0, used - total) };
 }
 function upcoming() {
   const list = [], t = todayStr();
@@ -207,12 +223,13 @@ function yearStats(year) {
       if (isRegular(ds)) { data.skips[ds] ? skipped++ : regular++; }
     }
     const bs = data.bookings.filter(b => b.date.startsWith(`${year}-${pad(m + 1)}`));
+    const ncs = data.nightCredits.filter(e => e.paid && e.date.startsWith(`${year}-${pad(m + 1)}`));
     rows.push({
       m, regular, skipped,
       nachhol: bs.filter(b => b.type === "nachhol").length,
       zusatz: bs.filter(b => b.type === "zusatz").length,
       nights: bs.reduce((a, b) => a + b.nights, 0),
-      cost: bs.reduce((a, b) => a + bookingCost(b), 0),
+      cost: bs.reduce((a, b) => a + bookingCost(b), 0) + ncs.reduce((a, e) => a + e.nights * num(data.rates.night), 0),
       flat: year * 12 + m >= startIdx ? num(data.rates.flat) : 0
     });
   }
@@ -224,7 +241,7 @@ const chip = (kind, text) => {
   const k = KIND[kind];
   return `<span class="chip" style="background:${k.soft};color:${kind === "skipN" ? "var(--ink)" : k.color}">${esc(text || k.label)}</span>`;
 };
-const dot = kind => `<span class="dot${kind === "skipM" || kind === "skipN" ? " ring" : ""}" style="--c:${KIND[kind].color}"></span>`;
+const dot = kind => `<span class="dot${kind === "skipM" || kind === "skipN" || kind === "ncredit" ? " ring" : ""}" style="--c:${KIND[kind].color}"></span>`;
 const btn = (act, label, arg, cls = "btn") => `<button class="${cls}" data-act="${act}"${arg !== undefined ? ` data-arg="${esc(arg)}"` : ""}>${label}</button>`;
 const cbtn = (act, label, confirmLabel, arg, cls = "btn btn-quiet") => {
   const key = act + ":" + (arg === undefined ? "" : arg), armed = ui.armed === key;
@@ -236,8 +253,9 @@ function vDay(cr) {
   const d = ui.sel, reg = isRegular(d), sk = data.skips[d];
   const dayB = data.bookings.filter(b => b.date === d);
   const stays = data.bookings.filter(b => b.nights > 0 && d > b.date && d <= addDays(b.date, b.nights));
+  const nc = computeNights(), ncDay = data.nightCredits.filter(e => e.date === d);
   let h = `<div class="card"><h2 class="h2">${esc(fmtLong(d))}</h2>`;
-  if (!reg && !dayB.length && !stays.length) h += `<p class="muted" style="margin:6px 0 0">Nichts eingetragen.</p>`;
+  if (!reg && !dayB.length && !stays.length && !ncDay.length) h += `<p class="muted" style="margin:6px 0 0">Nichts eingetragen.</p>`;
 
   if (reg) {
     h += `<div class="row"><div>${chip(sk ? (sk.makeup ? "skipM" : "skipN") : "regular")}`;
@@ -249,8 +267,14 @@ function vDay(cr) {
   dayB.forEach(b => {
     h += `<div class="row"><div>${chip(b.type, KIND[b.type].label + (b.nights > 0 ? ", " + nightsText(b.nights) : ""))}`;
     if (b.nights > 0) h += `<div class="muted small" style="margin-top:4px">Abholung am ${esc(fmtShort(addDays(b.date, b.nights)))}</div>`;
+    if (b.fromCredit > 0) h += `<div class="muted small" style="margin-top:4px">${nightsText(b.fromCredit)} aus Guthaben, kostenfrei</div>`;
     if (b.note) h += `<div class="small" style="margin-top:4px">${esc(b.note)}</div>`;
     h += `</div>${cbtn("delBooking", "Löschen", "Wirklich?", b.id)}</div>`;
+  });
+  ncDay.forEach(e => {
+    h += `<div class="row"><div>${chip("ncredit", "Nacht-Guthaben, " + nightsText(e.nights))}
+      <div class="muted small" style="margin-top:4px">${e.paid ? "Berechnet, nicht genutzt" : "Nicht berechnet"}</div>
+      ${e.note ? `<div class="small" style="margin-top:4px">${esc(e.note)}</div>` : ""}</div>${cbtn("delNC", "Löschen", "Wirklich?", e.id)}</div>`;
   });
   stays.forEach(b => {
     h += `<div class="row"><div>${chip("nacht", d === addDays(b.date, b.nights) ? "Abholung" : "Übernachtung läuft")}
@@ -262,7 +286,8 @@ function vDay(cr) {
     h += `<div class="actions" style="margin-top:14px">` +
       (hasCredit ? btn("mode", "Nachholtag eintragen", "add:nachhol", "btn btn-primary") : "") +
       btn("mode", "Zusatztag hinzufügen", "add:zusatz", hasCredit ? "btn" : "btn btn-primary") +
-      btn("mode", "Übernachtung hinzufügen", "add:nacht", "btn") + `</div>`;
+      btn("mode", "Übernachtung hinzufügen", "add:nacht", "btn") +
+      btn("mode", "Nacht-Guthaben eintragen", "ncredit", "btn") + `</div>`;
   }
 
   if (ui.mode === "skip") {
@@ -277,6 +302,17 @@ function vDay(cr) {
       <p class="muted small" style="margin:8px 0 0">Der Mittwoch fällt aus und der neue Tag wird als Nachholtag eingetragen.</p>
       <div class="actions">${btn("doMove", "Verschieben", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
   }
+  if (ui.mode === "ncredit") {
+    h += `<div class="form"><p class="muted small" style="margin:0 0 12px">Für eine gebuchte, aber nicht genutzte Nacht, die ihr später noch einlösen wollt.</p>
+      <label class="lbl">Datum der nicht genutzten Nacht</label>
+      <input class="inp" type="date" data-ui="ncDate" value="${esc(ui.ncDate)}">
+      <label class="lbl sp">Anzahl Nächte</label>
+      <div class="stepper">${btn("ncn", "−", "-1")}<span class="serif" style="font-size:22px;min-width:28px;text-align:center">${ui.ncNights}</span>${btn("ncn", "+", "1")}</div>
+      <label class="check"><input type="checkbox" data-ui="ncPaid" ${ui.ncPaid ? "checked" : ""}> Nacht wurde berechnet (zählt in den Kosten dieses Monats)</label>
+      <label class="lbl">Notiz (optional)</label>
+      <input class="inp" data-ui="ncNote" value="${esc(ui.ncNote)}">
+      <div class="actions">${btn("doNC", "Guthaben speichern", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
+  }
   if (ui.mode === "add") {
     h += `<div class="form"><label class="lbl">Datum</label><input class="inp" type="date" data-ui="addDate" value="${esc(ui.addDate)}" style="margin-bottom:12px">
       <label class="lbl">Art der Buchung</label><div class="chips">` +
@@ -287,6 +323,7 @@ function vDay(cr) {
     h += `<label class="lbl sp">Übernachtungen</label>
       <div class="stepper">${btn("nights", "−", "-1")}<span class="serif" style="font-size:22px;min-width:28px;text-align:center">${ui.nights}</span>${btn("nights", "+", "1")}</div>
       ${ui.nights > 0 && ui.addDate ? `<div class="muted small" style="margin-top:8px">Erste Nacht ${esc(fmtShort(ui.addDate))}, Abholung am ${esc(fmtShort(addDays(ui.addDate, ui.nights)))}</div>` : ""}
+      ${nc.openCount > 0 && ui.nights > 0 ? `<label class="lbl sp">Davon aus Nacht-Guthaben (${nc.openCount} offen, kostenfrei)</label><div class="stepper">${btn("fc", "−", "-1")}<span class="serif" style="font-size:22px;min-width:28px;text-align:center">${ui.fromCredit}</span>${btn("fc", "+", "1")}</div>` : ""}
       <label class="lbl sp">Notiz (optional)</label>
       <input class="inp" data-ui="note" value="${esc(ui.note)}" placeholder="z. B. Abholung erst abends">
       <div class="actions">${btn("doAdd", "Buchung speichern", undefined, "btn btn-primary")}${btn("mode", "Abbrechen", "")}</div></div>`;
@@ -321,6 +358,17 @@ function vOverview(cr) {
   if (cr.openCount === 0 && cr.over === 0) h += `<p class="muted small" style="margin:10px 0 0">Alles eingelöst.</p>`;
   h += `</section>`;
 
+  const nc = computeNights();
+  h += `<section class="card"><div class="row nb"><div><h2 class="h2" style="margin:0">Offene Nächte</h2>
+    <div class="muted small">Gebuchte, nicht genutzte Nächte zum Einlösen</div></div>
+    <div class="serif" style="font-size:40px;line-height:1;color:${nc.openCount ? "var(--indigo)" : "var(--muted)"}">${nc.openCount}</div></div>`;
+  if (nc.over > 0) h += `<p class="warn small">Es sind ${nc.over} Nacht/Nächte mehr aus Guthaben eingelöst als Guthaben vorhanden. Bitte Einträge prüfen.</p>`;
+  nc.open.forEach(e => {
+    h += `<div class="row"><div><div>${esc(fmtShort(e.date))}</div><div class="muted small">${nightsText(e.nights)}${e.note ? ", " + esc(e.note) : ""}</div></div>${btn("redeemNight", "Einlösen")}</div>`;
+  });
+  if (!nc.openCount && !nc.over) h += `<p class="muted small" style="margin:10px 0 0">Keine offenen Nächte. Eintragen: Kalender, Tag wählen, Nacht-Guthaben eintragen.</p>`;
+  h += `</section>`;
+
   const rest = up.slice(1, 9);
   h += `<section class="card"><h2 class="h2">Anstehend</h2>`;
   if (!rest.length) h += `<p class="muted small">Nichts weiter geplant.</p>`;
@@ -345,7 +393,7 @@ function vCalendar(cr) {
   return `<div class="card first"><div class="row nb" style="margin-bottom:10px">${btn("month", "‹", "-1")}
     <div class="serif" style="font-size:19px">${esc(new Date(y, m, 1).toLocaleDateString("de-DE", { month: "long", year: "numeric" }))}</div>${btn("month", "›", "1")}</div>
     <div class="grid">${wd}${cells}</div>
-    <div class="legend">${["regular", "skipM", "nachhol", "zusatz"].map(k => `<span>${dot(k)} ${KIND[k].label}</span>`).join("")}<span><span class="bar"></span> Übernachtung</span></div></div>` + vDay(cr);
+    <div class="legend">${["regular", "skipM", "nachhol", "zusatz", "ncredit"].map(k => `<span>${dot(k)} ${KIND[k].label}</span>`).join("")}<span><span class="bar"></span> Übernachtung</span></div></div>` + vDay(cr);
 }
 
 function vHistory() {
@@ -354,6 +402,7 @@ function vHistory() {
   const items = [];
   Object.entries(data.skips).forEach(([d, s]) => { if (d.startsWith(String(year))) items.push({ date: d, type: "skip", skip: s }); });
   data.bookings.forEach(b => { if (b.date.startsWith(String(year))) items.push({ date: b.date, type: "booking", b }); });
+  data.nightCredits.forEach(e => { if (e.date.startsWith(String(year))) items.push({ date: e.date, type: "nc", e }); });
   items.sort((a, b) => a.date < b.date ? 1 : -1);
   const total = sum("flat") + sum("cost");
 
@@ -370,6 +419,10 @@ function vHistory() {
     if (it.type === "skip") {
       h += `<div class="row"><button class="linkish" data-act="goto" data-arg="${it.date}">${esc(fmtShort(it.date))}</button><div style="flex:1;margin-left:12px">${chip(it.skip.makeup ? "skipM" : "skipN")}
         <div class="muted small" style="margin-top:3px">${esc(it.skip.reason)}${it.skip.movedTo ? ", verschoben auf " + esc(fmtShort(it.skip.movedTo)) : ""}</div></div></div>`;
+    } else if (it.type === "nc") {
+      const e = it.e;
+      h += `<div class="row"><button class="linkish" data-act="goto" data-arg="${it.date}">${esc(fmtShort(it.date))}</button><div style="flex:1;margin-left:12px">${chip("ncredit", "Nacht-Guthaben, " + nightsText(e.nights))}
+        <div class="muted small" style="margin-top:3px">${e.paid ? "Berechnet, nicht genutzt" : "Nicht berechnet"}${e.note ? ", " + esc(e.note) : ""}</div></div>${cbtn("delNC", "Löschen", "Wirklich?", e.id)}</div>`;
     } else {
       const b = it.b;
       h += `<div class="row"><button class="linkish" data-act="goto" data-arg="${it.date}">${esc(fmtShort(it.date))}</button><div style="flex:1;margin-left:12px">${chip(b.type, KIND[b.type].label + (b.nights > 0 ? ", " + nightsText(b.nights) : ""))}
@@ -429,7 +482,8 @@ function openMode(m) {
   ui.mode = m || null;
   if (m === "skip") { ui.reason = "Urlaub"; ui.makeup = true; }
   if (m === "move") ui.moveTo = addDays(ui.sel, 1);
-  if (m === "add") { ui.type = "zusatz"; ui.nights = 0; ui.note = ""; ui.addDate = ui.sel; }
+  if (m === "add") { ui.type = "zusatz"; ui.nights = 0; ui.note = ""; ui.addDate = ui.sel; ui.fromCredit = 0; }
+  if (m === "ncredit") { ui.ncDate = ui.sel; ui.ncNights = 1; ui.ncNote = ""; ui.ncPaid = true; }
 }
 function goTo(d) {
   const dt = parse(d);
@@ -444,7 +498,21 @@ const ACTIONS = {
   mode: a => { if (a.startsWith("add:")) { openMode("add"); ui.type = a.slice(4); if (ui.type === "nacht") ui.nights = 1; } else openMode(a); },
   reason: a => { ui.reason = a; },
   type: a => { ui.type = a; if (a === "nacht" && ui.nights < 1) ui.nights = 1; },
-  nights: a => { ui.nights = Math.max(ui.type === "nacht" ? 1 : 0, Math.min(30, ui.nights + Number(a))); },
+  nights: a => {
+    ui.nights = Math.max(ui.type === "nacht" ? 1 : 0, Math.min(30, ui.nights + Number(a)));
+    ui.fromCredit = Math.min(ui.fromCredit, ui.nights, computeNights().openCount);
+  },
+  fc: a => { ui.fromCredit = Math.max(0, Math.min(ui.nights, computeNights().openCount, ui.fromCredit + Number(a))); },
+  ncn: a => { ui.ncNights = Math.max(1, Math.min(14, ui.ncNights + Number(a))); },
+  doNC: () => {
+    if (!ui.ncDate) return;
+    data.nightCredits.push({ id: uid(), date: ui.ncDate, nights: ui.ncNights, paid: ui.ncPaid, note: ui.ncNote.trim() });
+    const dt = parse(ui.ncDate);
+    ui.sel = ui.ncDate; ui.cal = { y: dt.getFullYear(), m: dt.getMonth() };
+    ui.mode = null; save();
+  },
+  delNC: a => { data.nightCredits = data.nightCredits.filter(e => e.id !== a); save(); },
+  redeemNight: () => { goTo(todayStr()); openMode("add"); ui.type = "nacht"; ui.nights = 1; ui.fromCredit = Math.min(1, computeNights().openCount); },
   doSkip: () => { data.skips[ui.sel] = { reason: ui.reason, makeup: ui.makeup }; ui.mode = null; save(); },
   unskip: a => { delete data.skips[a]; save(); },
   doMove: () => {
@@ -455,7 +523,7 @@ const ACTIONS = {
   },
   doAdd: () => {
     if (!ui.addDate) return;
-    data.bookings.push({ id: uid(), date: ui.addDate, type: ui.type, nights: ui.nights, note: ui.note.trim() });
+    data.bookings.push({ id: uid(), date: ui.addDate, type: ui.type, nights: ui.nights, fromCredit: Math.min(ui.fromCredit, ui.nights, computeNights().openCount), note: ui.note.trim() });
     const dt = parse(ui.addDate);
     ui.sel = ui.addDate; ui.cal = { y: dt.getFullYear(), m: dt.getMonth() };
     ui.mode = null; save();
@@ -507,11 +575,11 @@ document.addEventListener("focusin", e => { if (e.target.dataset && e.target.dat
 /* Eingaben ohne Neu-Rendern merken */
 document.addEventListener("input", e => {
   const k = e.target.dataset && e.target.dataset.ui;
-  if (k && k !== "makeup") ui[k] = e.target.value;
+  if (k && e.target.type !== "checkbox") ui[k] = e.target.value;
 });
 document.addEventListener("change", e => {
   const t = e.target;
-  if (t.dataset && t.dataset.ui === "makeup") { ui.makeup = t.checked; return; }
+  if (t.dataset && t.dataset.ui && t.type === "checkbox") { ui[t.dataset.ui] = t.checked; return; }
   if (t.dataset && t.dataset.ui) { ui[t.dataset.ui] = t.value; if (t.dataset.ui === "addDate") render(); return; }
   if (t.dataset && t.dataset.set) {
     const path = t.dataset.set.split(".");
